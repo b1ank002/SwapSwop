@@ -36,5 +36,4 @@ interface ISwapSwopFactory {
     /// @param tokenB The second token
     /// @return The address of the new pair
     function createPair(address tokenA, address tokenB) external returns (address);
-
 }
