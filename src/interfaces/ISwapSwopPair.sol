@@ -11,12 +11,6 @@ interface ISwapSwopPair {
     /// @notice Thrown when the amount of token1 is insufficient
     error InsufficientLiquidityToken1();
 
-    /// @notice Thrown when the amount of token0 is greater than the reserve of token0
-    error Amount0GreaterThanReserve0();
-
-    /// @notice Thrown when the amount of token1 is greater than the reserve of token1
-    error Amount1GreaterThanReserve1();
-
     /// @notice Thrown when a transfer fails
     error TransferFailed();
 
@@ -32,17 +26,22 @@ interface ISwapSwopPair {
     /// @notice Thrown when the liquidity ratio is invalid
     error InvalidLiquidityRatio();
 
+    /// @notice Thrown when the amount of lp token is insufficient
+    error InsufficientLiquidityLpToken();
+
     /// @notice Emitted when liquidity is added
     /// @param user The user who added liquidity
     /// @param amount0 The amount of token0 added
     /// @param amount1 The amount of token1 added
-    event AddLiquidity(address indexed user, uint256 amount0, uint256 amount1);
+    /// @param amountLpToken The amount of lp token added
+    event AddLiquidity(address indexed user, uint256 amount0, uint256 amount1, uint256 amountLpToken);
 
     /// @notice Emitted when liquidity is removed
     /// @param user The user who removed liquidity
     /// @param amount0 The amount of token0 removed
     /// @param amount1 The amount of token1 removed
-    event RemoveLiquidity(address indexed user, uint256 amount0, uint256 amount1);
+    /// @param amountLpToken The amount of lp token removed
+    event RemoveLiquidity(address indexed user, uint256 amount0, uint256 amount1, uint256 amountLpToken);
 
     /// @notice Emitted when liquidity is swapped
     /// @param user The user who swapped liquidity
@@ -61,9 +60,8 @@ interface ISwapSwopPair {
     function addLiquidity(uint256 _amount0, uint256 _amount1) external;
 
     /// @notice Removes liquidity from the pair
-    /// @param _amount0 The amount of token0 to remove
-    /// @param _amount1 The amount of token1 to remove
-    function removeLiquidity(uint256 _amount0, uint256 _amount1) external;
+    /// @param _amountLpToken The amount of lp token to remove
+    function removeLiquidity(uint256 _amountLpToken) external;
 
     /// @notice Swaps liquidity in the pair
     /// @param _tokenIn The token to swap in
