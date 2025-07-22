@@ -29,6 +29,9 @@ interface ISwapSwopPair {
     /// @notice Thrown when the amount of token out is greater than the reserve of token out
     error InsufficientLiquidityTokenOut();
 
+    /// @notice Thrown when the liquidity ratio is invalid
+    error InvalidLiquidityRatio();
+
     /// @notice Emitted when liquidity is added
     /// @param user The user who added liquidity
     /// @param amount0 The amount of token0 added
@@ -54,6 +57,7 @@ interface ISwapSwopPair {
     /// @notice Adds liquidity to the pair
     /// @param _amount0 The amount of token0 to add
     /// @param _amount1 The amount of token1 to add
+    /// @dev add allowance to the token0 and token1
     function addLiquidity(uint256 _amount0, uint256 _amount1) external;
 
     /// @notice Removes liquidity from the pair
@@ -64,5 +68,6 @@ interface ISwapSwopPair {
     /// @notice Swaps liquidity in the pair
     /// @param _tokenIn The token to swap in
     /// @param _amountIn The amount of token to swap in
+    /// @dev add allowance to the tokenIn
     function swap(address _tokenIn, uint256 _amountIn) external;
 }
