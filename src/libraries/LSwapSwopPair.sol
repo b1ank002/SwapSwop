@@ -58,7 +58,7 @@ library LSwapSwopPair {
         returns (uint256)
     {
         if (totalSupply == 0) {
-            return Math.sqrt(amount0 * amount1);
+            return Math.sqrt(amount0 * amount1 * 1e18);
         }
 
         uint256 amount = Math.min((amount0 * totalSupply) / reserve0, (amount1 * totalSupply) / reserve1);
