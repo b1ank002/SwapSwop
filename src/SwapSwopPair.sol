@@ -23,12 +23,12 @@ contract SwapSwopPair is ISwapSwopPair {
     }
 
     function addLiquidity(uint256 _amount0, uint256 _amount1) public {
+        if (_amount0 == 0) revert InsufficientLiquidityToken0();
+        if (_amount1 == 0) revert InsufficientLiquidityToken1();
+
         if (!LSwapSwopPair.isValidLiquidityRatio(reserve0, reserve1, _amount0, _amount1)) {
             revert InvalidLiquidityRatio();
         }
-
-        if (_amount0 == 0) revert InsufficientLiquidityToken0();
-        if (_amount1 == 0) revert InsufficientLiquidityToken1();
 
         require(IERC20(token0).transferFrom(msg.sender, address(this), _amount0), TransferFailed());
         require(IERC20(token1).transferFrom(msg.sender, address(this), _amount1), TransferFailed());
@@ -61,9 +61,10 @@ contract SwapSwopPair is ISwapSwopPair {
     }
 
     function swap(address _tokenIn, uint256 _amountIn) public {
-        if (_tokenIn == token0 || _tokenIn == token1) revert InvalidTokenAddress();
-        if (_tokenIn == address(0)) revert InvalidTokenAddress();
+        if (_tokenIn != token0 && _tokenIn != token1) revert InvalidTokenAddress();
         if (_amountIn == 0) revert InvalidAmount();
+        if (reserve0 == 0 || reserve1 == 0) revert InsufficientLiquidity();
+        if (_amountIn > IERC20(_tokenIn).balanceOf(msg.sender)) revert InsufficientBalance();
 
         _tokenIn = _tokenIn == token0 ? token0 : token1;
         address tokenOut = _tokenIn == token0 ? token1 : token0;
@@ -73,6 +74,7 @@ contract SwapSwopPair is ISwapSwopPair {
         require(IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn), TransferFailed());
 
         uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
+        if (amountOut > reserveOut) revert InsufficientLiquidityTokenOut();
 
         require(IERC20(tokenOut).transfer(msg.sender, amountOut), TransferFailed());
 

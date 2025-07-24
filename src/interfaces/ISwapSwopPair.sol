@@ -29,6 +29,12 @@ interface ISwapSwopPair {
     /// @notice Thrown when the amount of lp token is insufficient
     error InsufficientLiquidityLpToken();
 
+    /// @notice Thrown when the liquidity is insufficient
+    error InsufficientLiquidity();
+
+    /// @notice Thrown when the balance is insufficient
+    error InsufficientBalance();
+
     /// @notice Emitted when liquidity is added
     /// @param user The user who added liquidity
     /// @param amount0 The amount of token0 added
@@ -61,6 +67,7 @@ interface ISwapSwopPair {
 
     /// @notice Removes liquidity from the pair
     /// @param _amountLpToken The amount of lp token to remove
+    /// @dev add allowance to the lp token
     function removeLiquidity(uint256 _amountLpToken) external;
 
     /// @notice Swaps liquidity in the pair
