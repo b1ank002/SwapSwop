@@ -69,17 +69,16 @@ contract SwapSwopPair is ISwapSwopPair {
         _tokenIn = _tokenIn == token0 ? token0 : token1;
         address tokenOut = _tokenIn == token0 ? token1 : token0;
         uint256 reserveIn = _tokenIn == token0 ? reserve0 : reserve1;
-        uint256 reserveOut = _tokenIn == token0 ? reserve0 : reserve1;
+        uint256 reserveOut = _tokenIn == token0 ? reserve1 : reserve0;
 
         require(IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn), TransferFailed());
 
         uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
-        if (amountOut > reserveOut) revert InsufficientLiquidityTokenOut();
 
         require(IERC20(tokenOut).transfer(msg.sender, amountOut), TransferFailed());
 
-        reserveIn += _amountIn;
-        reserveOut -= amountOut;
+        _tokenIn == token0 ? reserve0 += _amountIn : reserve1 += _amountIn;
+        _tokenIn == token0 ? reserve1 -= amountOut : reserve0 -= amountOut;
 
         emit Swap(msg.sender, _tokenIn, _amountIn, tokenOut, amountOut);
     }

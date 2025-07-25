@@ -44,8 +44,7 @@ contract SwapSwopPairTest is Test {
         vm.assume(_amount0 > 0 && _amount1 > 0);
         vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
 
-         uint256 amountLpToken =
-            LSwapSwopPair.getAmountLpToken(_amount0, _amount1, 0, 0, lpToken.totalSupply());
+        uint256 amountLpToken = LSwapSwopPair.getAmountLpToken(_amount0, _amount1, 0, 0, lpToken.totalSupply());
         console.log("amountLpToken: ", amountLpToken);
 
         token0.approve(address(swapSwopPair), _amount0);
@@ -92,7 +91,10 @@ contract SwapSwopPairTest is Test {
 
         vm.assume(_amount0 > 0 && _amount1 > 0);
         vm.assume(_amount0 <= AMOUNT_TOKEN0 - 5000 && _amount1 <= AMOUNT_TOKEN1 - 5);
-        vm.assume(LSwapSwopPair.isValidLiquidityRatio(swapSwopPair.reserve0(), swapSwopPair.reserve1(), _amount0, _amount1) == false);
+        vm.assume(
+            LSwapSwopPair.isValidLiquidityRatio(swapSwopPair.reserve0(), swapSwopPair.reserve1(), _amount0, _amount1)
+                == false
+        );
 
         token0.approve(address(swapSwopPair), _amount0);
         token1.approve(address(swapSwopPair), _amount1);
@@ -143,8 +145,9 @@ contract SwapSwopPairTest is Test {
 
         vm.assume(_amountLpToken > 0 && _amountLpToken <= amountLpToken);
 
-        (uint256 amount0, uint256 amount1) =
-            LSwapSwopPair.getAmountToken0andToken1(_amountLpToken, swapSwopPair.reserve0(), swapSwopPair.reserve1(), lpToken.totalSupply());
+        (uint256 amount0, uint256 amount1) = LSwapSwopPair.getAmountToken0andToken1(
+            _amountLpToken, swapSwopPair.reserve0(), swapSwopPair.reserve1(), lpToken.totalSupply()
+        );
 
         lpToken.approve(address(swapSwopPair), _amountLpToken);
 
@@ -160,7 +163,11 @@ contract SwapSwopPairTest is Test {
         assertEq(lpToken.totalSupply(), amountLpToken - _amountLpToken);
     }
 
-    function test_Remove_Liquidity_InsufficientLiquidityLpToken(uint256 _amount0, uint256 _amount1, uint256 _amountLpToken) public {
+    function test_Remove_Liquidity_InsufficientLiquidityLpToken(
+        uint256 _amount0,
+        uint256 _amount1,
+        uint256 _amountLpToken
+    ) public {
         vm.assume(_amount0 > 0 && _amount1 > 0);
         vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
 
@@ -186,22 +193,19 @@ contract SwapSwopPairTest is Test {
 
         lpToken.approve(address(swapSwopPair), _amountLpToken);
 
-        (uint256 amount0, uint256 amount1) =
-            LSwapSwopPair.getAmountToken0andToken1(_amountLpToken, swapSwopPair.reserve0(), swapSwopPair.reserve1(), lpToken.totalSupply());
+        (uint256 amount0, uint256 amount1) = LSwapSwopPair.getAmountToken0andToken1(
+            _amountLpToken, swapSwopPair.reserve0(), swapSwopPair.reserve1(), lpToken.totalSupply()
+        );
 
         vm.mockCall(
-            address(token0),
-            abi.encodeWithSelector(IERC20.transfer.selector, address(this), amount0),
-            abi.encode(false)
+            address(token0), abi.encodeWithSelector(IERC20.transfer.selector, address(this), amount0), abi.encode(false)
         );
 
         vm.expectRevert(ISwapSwopPair.TransferFailed.selector);
         swapSwopPair.removeLiquidity(_amountLpToken);
 
         vm.mockCall(
-            address(token1),
-            abi.encodeWithSelector(IERC20.transfer.selector, address(this), amount1),
-            abi.encode(false)
+            address(token1), abi.encodeWithSelector(IERC20.transfer.selector, address(this), amount1), abi.encode(false)
         );
 
         vm.expectRevert(ISwapSwopPair.TransferFailed.selector);
@@ -245,19 +249,171 @@ contract SwapSwopPairTest is Test {
         }
 
         uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
-        console.log("amountOut: ", amountOut);
-        console.log("reserveOut: ", reserveOut);
-        console.log("balanceOf tokenOut: ", IERC20(tokenOut).balanceOf(address(swapSwopPair)));
-
         IERC20(tokenIn).approve(address(swapSwopPair), _amountIn);
-        deal(tokenOut, address(swapSwopPair), 1000000000000000000);
-        console.log("new balanceOf tokenOut: ", IERC20(tokenOut).balanceOf(address(swapSwopPair)));
 
-        vm.expectEmit(true, true, true, false);
+        vm.expectEmit(true, true, true, true);
         emit ISwapSwopPair.Swap(address(this), tokenIn, _amountIn, tokenOut, amountOut);
         swapSwopPair.swap(tokenIn, _amountIn);
-        console.log("final balanceOf tokenOut: ", IERC20(tokenOut).balanceOf(address(swapSwopPair)));
 
         assertEq(lpToken.totalSupply(), amountLpToken);
+        if (_isToken0) {
+            assertEq(swapSwopPair.reserve0(), reserveIn + _amountIn);
+            assertEq(swapSwopPair.reserve1(), reserveOut - amountOut);
+        } else {
+            assertEq(swapSwopPair.reserve0(), reserveOut - amountOut);
+            assertEq(swapSwopPair.reserve1(), reserveIn + _amountIn);
+        }
+    }
+
+    function test_Swap_Revert_InvalidTokenAddress(
+        uint256 _amount0,
+        uint256 _amount1,
+        address _tokenIn,
+        uint256 _amountIn
+    ) public {
+        vm.assume(_amount0 > 0 && _amount1 > 0);
+        vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
+
+        uint256 amountLpToken = test_Add_Liquidity_Success(_amount0, _amount1);
+
+        vm.assume(_tokenIn != address(token0) && _tokenIn != address(token1));
+
+        vm.expectRevert(ISwapSwopPair.InvalidTokenAddress.selector);
+        swapSwopPair.swap(_tokenIn, _amountIn);
+
+        vm.expectRevert(ISwapSwopPair.InvalidTokenAddress.selector);
+        swapSwopPair.swap(address(0), _amountIn);
+
+        assertEq(lpToken.totalSupply(), amountLpToken);
+        assertEq(swapSwopPair.reserve0(), _amount0);
+        assertEq(swapSwopPair.reserve1(), _amount1);
+        assertEq(token0.balanceOf(address(swapSwopPair)), _amount0);
+        assertEq(token1.balanceOf(address(swapSwopPair)), _amount1);
+    }
+
+    function test_Swap_Revert_InvalidAmount(uint256 _amount0, uint256 _amount1, bool _isToken0) public {
+        vm.assume(_amount0 > 0 && _amount1 > 0);
+        vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
+
+        uint256 amountLpToken = test_Add_Liquidity_Success(_amount0, _amount1);
+
+        if (_isToken0) {
+            vm.expectRevert(ISwapSwopPair.InvalidAmount.selector);
+            swapSwopPair.swap(address(token0), 0);
+        } else {
+            vm.expectRevert(ISwapSwopPair.InvalidAmount.selector);
+            swapSwopPair.swap(address(token1), 0);
+        }
+
+        assertEq(lpToken.totalSupply(), amountLpToken);
+        assertEq(swapSwopPair.reserve0(), _amount0);
+        assertEq(swapSwopPair.reserve1(), _amount1);
+        assertEq(token0.balanceOf(address(swapSwopPair)), _amount0);
+        assertEq(token1.balanceOf(address(swapSwopPair)), _amount1);
+    }
+
+    function test_Swap_Revert_InsufficientLiquidity(bool _isToken0, uint256 _amountIn) public {
+        vm.assume(_amountIn > 0);
+
+        if (_isToken0) {
+            vm.expectRevert(ISwapSwopPair.InsufficientLiquidity.selector);
+            swapSwopPair.swap(address(token0), _amountIn);
+        } else {
+            vm.expectRevert(ISwapSwopPair.InsufficientLiquidity.selector);
+            swapSwopPair.swap(address(token1), _amountIn);
+        }
+
+        assertEq(lpToken.totalSupply(), 0);
+        assertEq(swapSwopPair.reserve0(), 0);
+        assertEq(swapSwopPair.reserve1(), 0);
+        assertEq(token0.balanceOf(address(swapSwopPair)), 0);
+        assertEq(token1.balanceOf(address(swapSwopPair)), 0);
+    }
+
+    function test_Swap_Revert_InsufficientBalance(uint256 _amount0, uint256 _amount1, bool _isToken0, uint256 _amountIn)
+        public
+    {
+        vm.assume(_amount0 > 0 && _amount1 > 0);
+        vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
+
+        uint256 amountLpToken = test_Add_Liquidity_Success(_amount0, _amount1);
+
+        if (_isToken0) {
+            vm.assume(_amountIn > token0.balanceOf(address(this)));
+
+            vm.expectRevert(ISwapSwopPair.InsufficientBalance.selector);
+            swapSwopPair.swap(address(token0), _amountIn);
+        } else {
+            vm.assume(_amountIn > token1.balanceOf(address(this)));
+
+            vm.expectRevert(ISwapSwopPair.InsufficientBalance.selector);
+            swapSwopPair.swap(address(token1), _amountIn);
+        }
+
+        assertEq(lpToken.totalSupply(), amountLpToken);
+        assertEq(swapSwopPair.reserve0(), _amount0);
+        assertEq(swapSwopPair.reserve1(), _amount1);
+        assertEq(token0.balanceOf(address(swapSwopPair)), _amount0);
+        assertEq(token1.balanceOf(address(swapSwopPair)), _amount1);
+    }
+
+    function test_Swap_Revert_TransferFailed(uint256 _amount0, uint256 _amount1, bool _isToken0, uint256 _amountIn)
+        public
+    {
+        vm.assume(_amount0 > 0 && _amount1 > 0);
+        vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
+
+        uint256 amountLpToken = test_Add_Liquidity_Success(_amount0, _amount1);
+
+        address tokenIn;
+        address tokenOut;
+        uint256 reserveIn;
+        uint256 reserveOut;
+
+        vm.assume(_amountIn > 0);
+        if (_isToken0) {
+            vm.assume(_amountIn <= swapSwopPair.reserve0());
+            vm.assume(_amountIn <= token0.balanceOf(address(this)));
+
+            tokenIn = address(token0);
+            tokenOut = address(token1);
+            reserveIn = swapSwopPair.reserve0();
+            reserveOut = swapSwopPair.reserve1();
+        } else {
+            vm.assume(_amountIn <= swapSwopPair.reserve1());
+            vm.assume(_amountIn <= token1.balanceOf(address(this)));
+
+            tokenIn = address(token1);
+            tokenOut = address(token0);
+            reserveIn = swapSwopPair.reserve1();
+            reserveOut = swapSwopPair.reserve0();
+        }
+
+        uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
+        IERC20(tokenIn).approve(address(swapSwopPair), _amountIn);
+
+        vm.mockCall(
+            address(tokenIn),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(swapSwopPair), _amountIn),
+            abi.encode(false)
+        );
+
+        vm.expectRevert(ISwapSwopPair.TransferFailed.selector);
+        swapSwopPair.swap(tokenIn, _amountIn);
+
+        vm.mockCall(
+            address(tokenOut),
+            abi.encodeWithSelector(IERC20.transfer.selector, address(this), amountOut),
+            abi.encode(false)
+        );
+
+        vm.expectRevert(ISwapSwopPair.TransferFailed.selector);
+        swapSwopPair.swap(tokenIn, _amountIn);
+
+        assertEq(lpToken.totalSupply(), amountLpToken);
+        assertEq(swapSwopPair.reserve0(), _amount0);
+        assertEq(swapSwopPair.reserve1(), _amount1);
+        assertEq(token0.balanceOf(address(swapSwopPair)), _amount0);
+        assertEq(token1.balanceOf(address(swapSwopPair)), _amount1);
     }
 }

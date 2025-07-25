@@ -20,9 +20,6 @@ interface ISwapSwopPair {
     /// @notice Thrown when the amount is zero
     error InvalidAmount();
 
-    /// @notice Thrown when the amount of token out is greater than the reserve of token out
-    error InsufficientLiquidityTokenOut();
-
     /// @notice Thrown when the liquidity ratio is invalid
     error InvalidLiquidityRatio();
 
