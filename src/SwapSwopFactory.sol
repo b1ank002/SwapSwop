@@ -3,8 +3,9 @@ pragma solidity ^0.8.30;
 
 import "./interfaces/ISwapSwopFactory.sol";
 import "./SwapSwopPair.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-contract SwapSwopFactory is ISwapSwopFactory {
+contract SwapSwopFactory is ERC165, ISwapSwopFactory {
     mapping(address => mapping(address => address)) public pairs;
 
     address[] public allPairs;
@@ -32,5 +33,9 @@ contract SwapSwopFactory is ISwapSwopFactory {
         emit PairCreated(token0, token1, pair, allPairs.length);
 
         return pair;
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(ISwapSwopFactory).interfaceId || super.supportsInterface(interfaceId);
     }
 }

@@ -5,8 +5,9 @@ import "./interfaces/ISwapSwopPair.sol";
 import "./SwapSwopLp.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LSwapSwopPair} from "./libraries/LSwapSwopPair.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-contract SwapSwopPair is ISwapSwopPair {
+contract SwapSwopPair is ERC165, ISwapSwopPair {
     address public token0;
     address public token1;
 
@@ -81,5 +82,9 @@ contract SwapSwopPair is ISwapSwopPair {
         _tokenIn == token0 ? reserve1 -= amountOut : reserve0 -= amountOut;
 
         emit Swap(msg.sender, _tokenIn, _amountIn, tokenOut, amountOut);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(ISwapSwopPair).interfaceId || super.supportsInterface(interfaceId);
     }
 }
