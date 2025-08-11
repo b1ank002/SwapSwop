@@ -68,8 +68,9 @@ interface ISwapSwopPair {
     function removeLiquidity(uint256 _amountLpToken) external;
 
     /// @notice Swaps liquidity in the pair
+    /// @param _sender The sender of the swap
     /// @param _tokenIn The token to swap in
     /// @param _amountIn The amount of token to swap in
     /// @dev add allowance to the tokenIn
-    function swap(address _tokenIn, uint256 _amountIn) external;
+    function swap(address _sender, address _tokenIn, uint256 _amountIn) external;
 }

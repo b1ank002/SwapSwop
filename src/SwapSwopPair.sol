@@ -6,21 +6,26 @@ import "./SwapSwopLp.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LSwapSwopPair} from "./libraries/LSwapSwopPair.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {SwapSwopEIP712} from "./SwapSwopEIP712.sol";
 
-contract SwapSwopPair is ERC165, ISwapSwopPair {
+contract SwapSwopPair is ERC165, ISwapSwopPair, SwapSwopEIP712 {
     address public token0;
     address public token1;
 
     LpToken public lpToken;
 
+    SwapSwopEIP712 public eip712Swap;
+
     uint256 public reserve0;
     uint256 public reserve1;
 
-    constructor(address _token0, address _token1) {
+    constructor(address _token0, address _token1, address _eip712Swap) {
         token0 = _token0;
         token1 = _token1;
 
         lpToken = new LpToken(address(this));
+
+        eip712Swap = SwapSwopEIP712(_eip712Swap);
     }
 
     function addLiquidity(uint256 _amount0, uint256 _amount1) public {
@@ -61,27 +66,29 @@ contract SwapSwopPair is ERC165, ISwapSwopPair {
         emit RemoveLiquidity(msg.sender, amount0, amount1, _amountLpToken);
     }
 
-    function swap(address _tokenIn, uint256 _amountIn) public {
+    function swap(address _sender, address _tokenIn, uint256 _amountIn) public {
         if (_tokenIn != token0 && _tokenIn != token1) revert InvalidTokenAddress();
         if (_amountIn == 0) revert InvalidAmount();
         if (reserve0 == 0 || reserve1 == 0) revert InsufficientLiquidity();
-        if (_amountIn > IERC20(_tokenIn).balanceOf(msg.sender)) revert InsufficientBalance();
+
+        address _msgSender = msg.sender == address(eip712Swap) ? _sender : msg.sender;
+        if (_amountIn > IERC20(_tokenIn).balanceOf(_msgSender)) revert InsufficientBalance();
 
         _tokenIn = _tokenIn == token0 ? token0 : token1;
         address tokenOut = _tokenIn == token0 ? token1 : token0;
         uint256 reserveIn = _tokenIn == token0 ? reserve0 : reserve1;
         uint256 reserveOut = _tokenIn == token0 ? reserve1 : reserve0;
 
-        require(IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn), TransferFailed());
+        require(IERC20(_tokenIn).transferFrom(_msgSender, address(this), _amountIn), TransferFailed());
 
         uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
 
-        require(IERC20(tokenOut).transfer(msg.sender, amountOut), TransferFailed());
+        require(IERC20(tokenOut).transfer(_msgSender, amountOut), TransferFailed());
 
         _tokenIn == token0 ? reserve0 += _amountIn : reserve1 += _amountIn;
         _tokenIn == token0 ? reserve1 -= amountOut : reserve0 -= amountOut;
 
-        emit Swap(msg.sender, _tokenIn, _amountIn, tokenOut, amountOut);
+        emit Swap(_msgSender, _tokenIn, _amountIn, tokenOut, amountOut);
     }
 
     function supportsInterface(bytes4 interfaceId) public view override returns (bool) {

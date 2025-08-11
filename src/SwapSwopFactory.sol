@@ -4,11 +4,18 @@ pragma solidity ^0.8.30;
 import "./interfaces/ISwapSwopFactory.sol";
 import "./SwapSwopPair.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {SwapSwopEIP712} from "./SwapSwopEIP712.sol";
 
 contract SwapSwopFactory is ERC165, ISwapSwopFactory {
     mapping(address => mapping(address => address)) public pairs;
 
     address[] public allPairs;
+
+    address public eip712Swap;
+
+    constructor() {
+        eip712Swap = address(new SwapSwopEIP712());
+    }
 
     function getPair(address tokenA, address tokenB) public view returns (address) {
         return pairs[tokenA][tokenB];
@@ -25,7 +32,7 @@ contract SwapSwopFactory is ERC165, ISwapSwopFactory {
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         if (pairs[token0][token1] != address(0)) revert PairAlreadyExists();
 
-        address pair = address(new SwapSwopPair(token0, token1));
+        address pair = address(new SwapSwopPair(token0, token1, eip712Swap));
         pairs[token0][token1] = pair;
         pairs[token1][token0] = pair;
         allPairs.push(pair);
