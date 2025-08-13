@@ -14,6 +14,7 @@ interface ISwapSwopEIP712 {
         address sender;
         address tokenIn;
         uint256 amountIn;
+        uint256 minAmountOut;
         uint256 nonce;
         uint256 deadline;
     }
@@ -27,9 +28,20 @@ interface ISwapSwopEIP712 {
     /// @notice Thrown when a nonce in signature isnt equal nonce of sender
     error InvalideNonce();
 
-    /// @notice Get the domain separator for the EIP712
-    /// @return The domain separator
-    function getDomainSeparator() external view returns (bytes32);
+    /// @notice Thrown when actual output amount less then min output amount
+    /// @param actual The actual amount out
+    /// @param minAmountOut The min amount out
+    error InsufficientOutputAmount(uint256 actual, uint256 minAmountOut);
+
+    /// @notice Swaps liquidity in the pair using EIP712
+    /// @param pair The address of the pair of tokens
+    /// @param sender The sender of the swap
+    /// @param tokenIn The token to swap in
+    /// @param amountIn The amount of token to swap in
+    /// @param amountOut The amount of token that was swapped out
+    event SwapExecuted(
+        address indexed pair, address indexed sender, address indexed tokenIn, uint256 amountIn, uint256 amountOut
+    );
 
     /// @notice Get the nonce for the EIP712
     /// @param _sender The sender of the swap
@@ -41,4 +53,11 @@ interface ISwapSwopEIP712 {
     /// @param _signature The signature of the swap
     /// @return The result of the verification
     function verify(SwapEIP712 memory _swapParams, bytes memory _signature) external view returns (bool);
+
+    /// @notice Execute a swap function on pair contract
+    /// @param _swapParams The struct with params for swap
+    /// @param _signature The signature for swap
+    /// @return True if swap is executed
+    /// @dev Make approve for tokenIn for amountIn
+    function executeSwap(SwapEIP712 memory _swapParams, bytes memory _signature) external returns (bool);
 }

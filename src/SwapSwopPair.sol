@@ -66,7 +66,7 @@ contract SwapSwopPair is ERC165, ISwapSwopPair, SwapSwopEIP712 {
         emit RemoveLiquidity(msg.sender, amount0, amount1, _amountLpToken);
     }
 
-    function swap(address _sender, address _tokenIn, uint256 _amountIn) public {
+    function swap(address _sender, address _tokenIn, uint256 _amountIn) public returns (uint256) {
         if (_tokenIn != token0 && _tokenIn != token1) revert InvalidTokenAddress();
         if (_amountIn == 0) revert InvalidAmount();
         if (reserve0 == 0 || reserve1 == 0) revert InsufficientLiquidity();
@@ -89,6 +89,8 @@ contract SwapSwopPair is ERC165, ISwapSwopPair, SwapSwopEIP712 {
         _tokenIn == token0 ? reserve1 -= amountOut : reserve0 -= amountOut;
 
         emit Swap(_msgSender, _tokenIn, _amountIn, tokenOut, amountOut);
+
+        return amountOut;
     }
 
     function supportsInterface(bytes4 interfaceId) public view override returns (bool) {

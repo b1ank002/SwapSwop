@@ -12,36 +12,40 @@ contract SwapSwopEIP712 is EIP712, ISwapSwopEIP712 {
     string public constant EIP712_DOMAIN = "SwapSwopEIP712";
     string public constant EIP712_VERSION = "1";
 
-    bytes32 public constant EIP712_DOMAIN_TYPEHASH =
-        keccak256("EIP712Domain(address pair,address sender,address tokenIn,uint256 amountIn,uint256 nonce)");
+    bytes32 public constant SWAP_TYPEHASH = keccak256(
+        "SwapEIP712(address pair,address sender,address tokenIn,uint256 amountIn,uint256 minAmountOut,uint256 nonce,uint256 deadline)"
+    );
 
     mapping(address => uint256) private _nonces;
 
     constructor() EIP712(EIP712_DOMAIN, EIP712_VERSION) {}
-
-    function getDomainSeparator() public view returns (bytes32) {
-        return _domainSeparatorV4();
-    }
 
     function getNonce(address _sender) public view returns (uint256) {
         return _nonces[_sender];
     }
 
     function verify(SwapEIP712 memory _swapParams, bytes memory _signature) public view returns (bool) {
-        bytes32 digest = _hashTypedDataV4(
-            keccak256(
-                abi.encode(
-                    EIP712_DOMAIN_TYPEHASH,
-                    _swapParams.pair,
-                    _swapParams.sender,
-                    _swapParams.tokenIn,
-                    _swapParams.amountIn,
-                    _swapParams.nonce
-                )
-            )
-        );
+        bytes32 digest = _hashSwap(_swapParams);
+
         address signer = digest.recover(_signature);
         return signer == _swapParams.sender;
+    }
+
+    function _hashSwap(ISwapSwopEIP712.SwapEIP712 memory _swapParams) public view returns (bytes32) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                SWAP_TYPEHASH,
+                _swapParams.pair,
+                _swapParams.sender,
+                _swapParams.tokenIn,
+                _swapParams.amountIn,
+                _swapParams.minAmountOut,
+                _swapParams.nonce,
+                _swapParams.deadline
+            )
+        );
+
+        return _hashTypedDataV4(structHash);
     }
 
     function executeSwap(SwapEIP712 memory _swapParams, bytes memory _signature) public returns (bool) {
@@ -58,7 +62,14 @@ contract SwapSwopEIP712 is EIP712, ISwapSwopEIP712 {
         }
 
         _nonces[_swapParams.sender]++;
-        ISwapSwopPair(_swapParams.pair).swap(_swapParams.sender, _swapParams.tokenIn, _swapParams.amountIn);
+
+        uint256 actualAmount =
+            ISwapSwopPair(_swapParams.pair).swap(_swapParams.sender, _swapParams.tokenIn, _swapParams.amountIn);
+        require(
+            actualAmount > _swapParams.minAmountOut, InsufficientOutputAmount(actualAmount, _swapParams.minAmountOut)
+        );
+
+        emit SwapExecuted(_swapParams.pair, _swapParams.sender, _swapParams.tokenIn, _swapParams.amountIn, actualAmount);
 
         return true;
     }

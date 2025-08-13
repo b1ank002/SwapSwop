@@ -9,6 +9,7 @@ import {LpToken} from "../src/SwapSwopLp.sol";
 import {MockToken0} from "./testTokens/MockToken0.sol";
 import {MockToken1} from "./testTokens/MockToken1.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SwapSwopEIP712} from "../src/SwapSwopEIP712.sol";
 
 contract SwapSwopPairTest is Test {
     SwapSwopPair public swapSwopPair;
@@ -18,6 +19,8 @@ contract SwapSwopPairTest is Test {
 
     LpToken public lpToken;
 
+    SwapSwopEIP712 public eip712Swap;
+
     uint256 constant AMOUNT_TOKEN0 = 100_000 * 1e6; // usdt
     uint256 constant AMOUNT_TOKEN1 = 100 * 1e18; // eth
 
@@ -25,7 +28,9 @@ contract SwapSwopPairTest is Test {
         token0 = new MockToken0(address(this), AMOUNT_TOKEN0);
         token1 = new MockToken1(address(this), AMOUNT_TOKEN1);
 
-        swapSwopPair = new SwapSwopPair(address(token0), address(token1));
+        eip712Swap = new SwapSwopEIP712();
+
+        swapSwopPair = new SwapSwopPair(address(token0), address(token1), address(eip712Swap));
 
         lpToken = swapSwopPair.lpToken();
     }
@@ -253,7 +258,7 @@ contract SwapSwopPairTest is Test {
 
         vm.expectEmit(true, true, true, true);
         emit ISwapSwopPair.Swap(address(this), tokenIn, _amountIn, tokenOut, amountOut);
-        swapSwopPair.swap(tokenIn, _amountIn);
+        swapSwopPair.swap(msg.sender, tokenIn, _amountIn);
 
         assertEq(lpToken.totalSupply(), amountLpToken);
         if (_isToken0) {
@@ -279,10 +284,10 @@ contract SwapSwopPairTest is Test {
         vm.assume(_tokenIn != address(token0) && _tokenIn != address(token1));
 
         vm.expectRevert(ISwapSwopPair.InvalidTokenAddress.selector);
-        swapSwopPair.swap(_tokenIn, _amountIn);
+        swapSwopPair.swap(msg.sender, _tokenIn, _amountIn);
 
         vm.expectRevert(ISwapSwopPair.InvalidTokenAddress.selector);
-        swapSwopPair.swap(address(0), _amountIn);
+        swapSwopPair.swap(msg.sender, address(0), _amountIn);
 
         assertEq(lpToken.totalSupply(), amountLpToken);
         assertEq(swapSwopPair.reserve0(), _amount0);
@@ -299,10 +304,10 @@ contract SwapSwopPairTest is Test {
 
         if (_isToken0) {
             vm.expectRevert(ISwapSwopPair.InvalidAmount.selector);
-            swapSwopPair.swap(address(token0), 0);
+            swapSwopPair.swap(msg.sender, address(token0), 0);
         } else {
             vm.expectRevert(ISwapSwopPair.InvalidAmount.selector);
-            swapSwopPair.swap(address(token1), 0);
+            swapSwopPair.swap(msg.sender, address(token1), 0);
         }
 
         assertEq(lpToken.totalSupply(), amountLpToken);
@@ -317,10 +322,10 @@ contract SwapSwopPairTest is Test {
 
         if (_isToken0) {
             vm.expectRevert(ISwapSwopPair.InsufficientLiquidity.selector);
-            swapSwopPair.swap(address(token0), _amountIn);
+            swapSwopPair.swap(msg.sender, address(token0), _amountIn);
         } else {
             vm.expectRevert(ISwapSwopPair.InsufficientLiquidity.selector);
-            swapSwopPair.swap(address(token1), _amountIn);
+            swapSwopPair.swap(msg.sender, address(token1), _amountIn);
         }
 
         assertEq(lpToken.totalSupply(), 0);
@@ -342,12 +347,12 @@ contract SwapSwopPairTest is Test {
             vm.assume(_amountIn > token0.balanceOf(address(this)));
 
             vm.expectRevert(ISwapSwopPair.InsufficientBalance.selector);
-            swapSwopPair.swap(address(token0), _amountIn);
+            swapSwopPair.swap(msg.sender, address(token0), _amountIn);
         } else {
             vm.assume(_amountIn > token1.balanceOf(address(this)));
 
             vm.expectRevert(ISwapSwopPair.InsufficientBalance.selector);
-            swapSwopPair.swap(address(token1), _amountIn);
+            swapSwopPair.swap(msg.sender, address(token1), _amountIn);
         }
 
         assertEq(lpToken.totalSupply(), amountLpToken);
@@ -399,7 +404,7 @@ contract SwapSwopPairTest is Test {
         );
 
         vm.expectRevert(ISwapSwopPair.TransferFailed.selector);
-        swapSwopPair.swap(tokenIn, _amountIn);
+        swapSwopPair.swap(msg.sender, tokenIn, _amountIn);
 
         vm.mockCall(
             address(tokenOut),
@@ -408,7 +413,7 @@ contract SwapSwopPairTest is Test {
         );
 
         vm.expectRevert(ISwapSwopPair.TransferFailed.selector);
-        swapSwopPair.swap(tokenIn, _amountIn);
+        swapSwopPair.swap(msg.sender, tokenIn, _amountIn);
 
         assertEq(lpToken.totalSupply(), amountLpToken);
         assertEq(swapSwopPair.reserve0(), _amount0);
