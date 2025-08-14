@@ -32,6 +32,9 @@ interface ISwapSwopPair {
     /// @notice Thrown when the balance is insufficient
     error InsufficientBalance();
 
+    /// @notice Thrown when the output amount equal to 0
+    error InvalidOutputAmount();
+
     /// @notice Emitted when liquidity is added
     /// @param user The user who added liquidity
     /// @param amount0 The amount of token0 added

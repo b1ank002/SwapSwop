@@ -82,6 +82,7 @@ contract SwapSwopPair is ERC165, ISwapSwopPair, SwapSwopEIP712 {
         require(IERC20(_tokenIn).transferFrom(_msgSender, address(this), _amountIn), TransferFailed());
 
         uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
+        if (amountOut < 1) revert InvalidOutputAmount();
 
         require(IERC20(tokenOut).transfer(_msgSender, amountOut), TransferFailed());
 

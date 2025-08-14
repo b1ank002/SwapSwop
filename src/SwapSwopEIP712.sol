@@ -48,6 +48,13 @@ contract SwapSwopEIP712 is EIP712, ISwapSwopEIP712 {
         return _hashTypedDataV4(structHash);
     }
 
+    /// @notice Get the domain separator for EIP-712 typed data signing
+    /// @return The domain separator hash
+    /// @dev This is used to ensure signatures are unique to this contract and domain
+    function getDomainSeperator() public view returns (bytes32) {
+        return _domainSeparatorV4();
+    }
+
     function executeSwap(SwapEIP712 memory _swapParams, bytes memory _signature) public returns (bool) {
         if (!verify(_swapParams, _signature)) {
             revert InvalideSignature();

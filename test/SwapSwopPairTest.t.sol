@@ -254,6 +254,7 @@ contract SwapSwopPairTest is Test {
         }
 
         uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
+        vm.assume(amountOut > 0);
         IERC20(tokenIn).approve(address(swapSwopPair), _amountIn);
 
         vm.expectEmit(true, true, true, true);
@@ -356,6 +357,57 @@ contract SwapSwopPairTest is Test {
         }
 
         assertEq(lpToken.totalSupply(), amountLpToken);
+        assertEq(swapSwopPair.reserve0(), _amount0);
+        assertEq(swapSwopPair.reserve1(), _amount1);
+        assertEq(token0.balanceOf(address(swapSwopPair)), _amount0);
+        assertEq(token1.balanceOf(address(swapSwopPair)), _amount1);
+    }
+
+    function test_Swap_Revert_InvalidOutputAmount(
+        uint256 _amount0,
+        uint256 _amount1,
+        bool _isToken0,
+        uint256 _amountIn
+    ) public {
+        vm.assume(_amount0 > 0 && _amount1 > 0);
+        vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
+
+        token0.approve(address(swapSwopPair), _amount0);
+        token1.approve(address(swapSwopPair), _amount1);
+        swapSwopPair.addLiquidity(_amount0, _amount1);
+
+        address tokenIn;
+        address tokenOut;
+        uint256 reserveIn;
+        uint256 reserveOut;
+
+        vm.assume(_amountIn > 0);
+        if (_isToken0) {
+            vm.assume(_amountIn <= swapSwopPair.reserve0());
+            vm.assume(_amountIn <= token0.balanceOf(address(this)));
+
+            tokenIn = address(token0);
+            tokenOut = address(token1);
+            reserveIn = swapSwopPair.reserve0();
+            reserveOut = swapSwopPair.reserve1();
+        } else {
+            vm.assume(_amountIn <= swapSwopPair.reserve1());
+            vm.assume(_amountIn <= token1.balanceOf(address(this)));
+
+            tokenIn = address(token1);
+            tokenOut = address(token0);
+            reserveIn = swapSwopPair.reserve1();
+            reserveOut = swapSwopPair.reserve0();
+        }
+
+        uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
+        vm.assume(amountOut < 1);
+
+        IERC20(tokenIn).approve(address(swapSwopPair), _amountIn);
+
+        vm.expectRevert(ISwapSwopPair.InvalidOutputAmount.selector);
+        swapSwopPair.swap(msg.sender, tokenIn, _amountIn);
+
         assertEq(swapSwopPair.reserve0(), _amount0);
         assertEq(swapSwopPair.reserve1(), _amount1);
         assertEq(token0.balanceOf(address(swapSwopPair)), _amount0);

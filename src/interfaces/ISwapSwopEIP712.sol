@@ -60,4 +60,9 @@ interface ISwapSwopEIP712 {
     /// @return True if swap is executed
     /// @dev Make approve for tokenIn for amountIn
     function executeSwap(SwapEIP712 memory _swapParams, bytes memory _signature) external returns (bool);
+
+    /// @notice Get the domain separator for EIP-712 typed data signing
+    /// @return The domain separator hash
+    /// @dev This is used to ensure signatures are unique to this contract and domain
+    function getDomainSeperator() external view returns (bytes32);
 }
