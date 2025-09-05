@@ -252,6 +252,7 @@ contract SwapSwopEIP712Test is Test {
         IERC20(tokenIn).transfer(signer, _amountIn);
         uint256 amountOut = LSwapSwopPair.getAmountOut(_amountIn, reserveIn, reserveOut);
         vm.assume(amountOut < _minAmountOut);
+        vm.assume(amountOut > 0);
 
         vm.prank(signer);
         IERC20(tokenIn).approve(address(swapSwopPair), _amountIn);

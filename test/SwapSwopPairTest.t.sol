@@ -363,12 +363,9 @@ contract SwapSwopPairTest is Test {
         assertEq(token1.balanceOf(address(swapSwopPair)), _amount1);
     }
 
-    function test_Swap_Revert_InvalidOutputAmount(
-        uint256 _amount0,
-        uint256 _amount1,
-        bool _isToken0,
-        uint256 _amountIn
-    ) public {
+    function test_Swap_Revert_InvalidOutputAmount(uint256 _amount0, uint256 _amount1, bool _isToken0, uint256 _amountIn)
+        public
+    {
         vm.assume(_amount0 > 0 && _amount1 > 0);
         vm.assume(_amount0 <= AMOUNT_TOKEN0 && _amount1 <= AMOUNT_TOKEN1);
 
